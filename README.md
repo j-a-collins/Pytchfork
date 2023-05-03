@@ -1,2 +1,2 @@
-# PyTunes
-A bunch of notebooks for scraping highly-rated new albums from Pitchfork and adding them to a Spotify playlist
+# Pytchfork
+Scrapes the Best New Albums from Pitchfork and then uses SpotiPy to add the albums to a Spotify playlist
