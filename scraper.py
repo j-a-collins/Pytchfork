@@ -10,11 +10,10 @@ import bs4.element
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
-import os.path
+import re
 
 
 def main():
-    file_exists = check_file()
     reviews_raw = request_text()
     albums_df = get_fields(reviews_raw)
     albums_df.to_csv("./best-new-albums.csv", index=False)
@@ -24,9 +23,9 @@ def compare_files():
     [line.strip() for line in open("./best-new-albums.csv")]
 
 
-def check_file() -> bool:
-    """Check if file already exists"""
-    return os.path.isfile("best-new-albums.csv")
+def insert_space(name):
+    pattern = r"([a-z])([A-Z])"
+    return re.sub(pattern, r"\1 \2", name)
 
 
 def request_text() -> bs4.element.ResultSet:
@@ -49,7 +48,7 @@ def get_fields(raw: bs4.element.ResultSet) -> pd.DataFrame:
     for album in raw:
         entry = {
             # Artist: 'ul'
-            "artist": album.find_all(["ul"])[0].text,
+            "artist": insert_space(album.find_all(["ul"])[0].text),
             # Album: 'h2'
             "title": album.find_all(["h2"])[0].text,
             # Genre: 'li: genre-list__item'
