@@ -50,16 +50,46 @@ class SpotifyPlaylistAdder:
             f"Tracks from album '{album_title}' by '{artist}' added to the playlist with ID '{self.playlist_id}'"
         )
 
+    def get_album_ids_in_playlist(self):
+        offset = 0
+        limit = 100
+        album_ids = set()
+
+        while True:
+            playlist_tracks = self.sp.playlist_tracks(
+                self.playlist_id, offset=offset, limit=limit
+            )
+            if not playlist_tracks["items"]:
+                break
+
+            for item in playlist_tracks["items"]:
+                album_ids.add(item["track"]["album"]["id"])
+
+            offset += limit
+
+        return album_ids
+
     def add_albums_from_csv(self, csv_path):
         df = pd.read_csv(csv_path)
         df["artist"] = df["artist"].apply(self.format_artists)
+
+        # Get the album IDs already in the playlist
+        album_ids_in_playlist = self.get_album_ids_in_playlist()
 
         for _, row in df.iterrows():
             artist, album_title = row["artist"], row["title"]
             album_id = self.search_album(artist, album_title)
 
             if album_id:
-                self.add_album_to_playlist(album_id, artist, album_title)
+                # Check if the album is not already in the playlist
+                if album_id not in album_ids_in_playlist:
+                    self.add_album_to_playlist(album_id, artist, album_title)
+                    # Add the album ID to the set to avoid duplicates
+                    album_ids_in_playlist.add(album_id)
+                else:
+                    print(
+                        f"Album '{album_title}' by '{artist}' is already in the playlist"
+                    )
             else:
                 print(f"Album '{album_title}' by '{artist}' not found")
 
