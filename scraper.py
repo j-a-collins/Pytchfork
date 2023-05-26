@@ -52,10 +52,10 @@ def get_fields(raw: bs4.element.ResultSet) -> pd.DataFrame:
             # Album: 'h2'
             "title": album.find_all(["h2"])[0].text,
             # Genre: 'li: genre-list__item'
-            "genre": [
+            "genre": ", ".join([
                 genre.text
                 for genre in album.find_all("li", {"class": "genre-list__item"})
-            ],
+            ]),
         }
         all_albums.append(entry)
     return pd.DataFrame(all_albums)
