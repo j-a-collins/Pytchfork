@@ -1,0 +1,68 @@
+body {
+    background-color: black;
+    color: white;
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+header {
+    background-color: #333;
+    color: white;
+    text-align: center;
+    padding: 10px;
+}
+
+h1 {
+    background-color: #1DB954;
+    color: #fff;
+    padding: 20px 0;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+p {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+form {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.button {
+    display: block;
+    width: 200px;
+    height: 50px;
+    margin: 20px auto;
+    background-color: #f39;
+    text-align: center;
+    border-radius: 10px;
+    color: white;
+    font-weight: bold;
+    line-height: 50px;
+}
+
+table {
+    width: 100%;
+    margin: 20px 0;
+    border-collapse: collapse;
+    color: white;  /* Changes the table text color to white */
+}
+
+table, th, td {
+    border: 1px solid white;  /* Changes the table border color to white */
+}
+
+th, td {
+    padding: 10px;
+    text-align: center;
+}
+
+th {
+    background-color: #1DB954;
+    color: #fff;
+}
+
+tr:hover {background-color: #9c1cd4;}

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pytchfork</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script> <!-- Add jQuery -->
+</head> <!-- Add jQuery -->
+</head>
+<body>
+    <h1>Pytchfork: The Best New Music Finder</h1>
+    <p>Welcome to Pytchfork. Press the button below to fetch the latest well-reviewed albums and add them to a Spotify playlist.</p>
+    <form method="POST">
+        <button type="submit">Fetch New Albums</button>
+    </form>
+    {% if albums %} <!-- Only display the table if there are albums -->
+        <table>
+            <thead>
+                <tr>
+                    <th>Artist</th>
+                    <th>Album</th>
+                    <th>Genre</th>
+                    <th>Add to Spotify</th> <!-- Add a column for the new button -->
+                </tr>
+            </thead>
+            <tbody>
+                {% for album in albums %}
+                <tr>
+                    <td>{{ album.artist }}</td>
+                    <td>{{ album.title }}</td>
+                    <td>{{ album.genre }}</td>
+                    <td><button class="add-to-spotify" data-artist="{{ album.artist }}" data-album="{{ album.title }}">Add to Spotify</button></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+    <script>
+        // When a button with class 'add-to-spotify' is clicked
+        $(".add-to-spotify").click(function() {
+            var artist = $(this).data("artist"); // Get the artist name
+            var album = $(this).data("album"); // Get the album name
+
+            // Send a POST request to the '/add_album' route with the artist and album names
+            $.ajax({
+                url: "/add_album",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({ "artist": artist, "album": album }),
+                success: function(response) {
+                    alert(response.message); // Show a message with the response from the server
+                },
+                error: function(response) {
+                    alert(response.responseJSON.message); // Show an error message with the response from the server
+                }
+            });
+        });
+    </script>
+</body>
+</html>
