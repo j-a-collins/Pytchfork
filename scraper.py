@@ -1,64 +1,109 @@
 """
-Scrapes the 'best new music' from
-pitchfork and adds them to a .csv
+Imports the data from the .csv and adds the new albums
+to a Spotify playlist.
 
 J A Collins 14-08-2022
 """
 
-# Imports
-import bs4.element
 import pandas as pd
-import requests
-from bs4 import BeautifulSoup
+import spotipy
 import re
+from spotipy.oauth2 import SpotifyOAuth
+from creds import SPOTIPY_CLIENT_ID, SPOTIPY_CLIENT_SECRET, PLAYLIST_ID
+
+
+class SpotifyPlaylistAdder:
+    def __init__(self, client_id, client_secret, redirect_uri, scope, playlist_id):
+        self.sp = self.initialize_spotify(client_id, client_secret, redirect_uri, scope)
+        self.playlist_id = playlist_id
+
+    @staticmethod
+    def initialize_spotify(client_id, client_secret, redirect_uri, scope):
+        auth_manager = SpotifyOAuth(
+            client_id=client_id,
+            client_secret=client_secret,
+            scope=scope,
+            redirect_uri=redirect_uri,
+        )
+        return spotipy.Spotify(auth_manager=auth_manager)
+
+    @staticmethod
+    def format_artists(name):
+        pattern = r"([a-z])([A-Z])"
+        return re.sub(pattern, r"\1 \2", name)
+
+    def search_album(self, artist, album_title):
+        query = f"artist:{artist} album:{album_title}"
+        results = self.sp.search(q=query, type="album", limit=1)
+
+        if results["albums"]["items"]:
+            return results["albums"]["items"][0]["id"]
+        else:
+            return None
+
+    def add_album_to_playlist(self, album_id, artist, album_title):
+        album_tracks = self.sp.album_tracks(album_id)
+        track_ids = [track["id"] for track in album_tracks["items"]]
+        self.sp.playlist_add_items(self.playlist_id, track_ids)
+
+        print(
+            f"Tracks from album '{album_title}' by '{artist}' added to the playlist with ID '{self.playlist_id}'"
+        )
+
+    def get_album_ids_in_playlist(self):
+        offset = 0
+        limit = 100
+        album_ids = set()
+
+        while True:
+            playlist_tracks = self.sp.playlist_tracks(
+                self.playlist_id, offset=offset, limit=limit
+            )
+            if not playlist_tracks["items"]:
+                break
+
+            for item in playlist_tracks["items"]:
+                album_ids.add(item["track"]["album"]["id"])
+
+            offset += limit
+
+        return album_ids
+
+    def add_albums_from_csv(self, csv_path):
+        df = pd.read_csv(csv_path)
+        df["artist"] = df["artist"].apply(self.format_artists)
+
+        # Get the album IDs already in the playlist
+        album_ids_in_playlist = self.get_album_ids_in_playlist()
+
+        for _, row in df.iterrows():
+            artist, album_title = row["artist"], row["title"]
+            album_id = self.search_album(artist, album_title)
+
+            if album_id:
+                # Check if the album is not already in the playlist
+                if album_id not in album_ids_in_playlist:
+                    self.add_album_to_playlist(album_id, artist, album_title)
+                    # Add the album ID to the set to avoid duplicates
+                    album_ids_in_playlist.add(album_id)
+                else:
+                    print(
+                        f"Album '{album_title}' by '{artist}' is already in the playlist"
+                    )
+            else:
+                print(f"Album '{album_title}' by '{artist}' not found")
 
 
 def main():
-    reviews_raw = request_text()
-    albums_df = get_fields(reviews_raw)
-    albums_df.to_csv("./best-new-albums.csv", index=False)
+    playlist_adder = SpotifyPlaylistAdder(
+        client_id=SPOTIPY_CLIENT_ID,
+        client_secret=SPOTIPY_CLIENT_SECRET,
+        redirect_uri="http://localhost:8080/callback",
+        scope="playlist-modify-public",
+        playlist_id=PLAYLIST_ID,
+    )
 
-
-def compare_files():
-    [line.strip() for line in open("./best-new-albums.csv")]
-
-
-def insert_space(name):
-    pattern = r"([a-z])([A-Z])"
-    return re.sub(pattern, r"\1 \2", name)
-
-
-def request_text() -> bs4.element.ResultSet:
-    """Fetches the raw text of the given URL
-    converts for readability and finds the reviews"""
-    request = requests.get("https://pitchfork.com/reviews/best/albums/?page=1")
-    try:
-        print(f"Status code: {request.status_code}")
-        cleaned_text = BeautifulSoup(request.text, "lxml")
-        reviews_set = cleaned_text.find_all("div", {"class": "review"})
-        return reviews_set
-    except requests.exceptions.RequestException as e:
-        raise SystemExit(e)
-
-
-def get_fields(raw: bs4.element.ResultSet) -> pd.DataFrame:
-    """Splits the raw reviews into the required fields:
-    Artist, Album, Genre"""
-    all_albums = []  # This will hold all the dictionaries
-    for album in raw:
-        entry = {
-            # Artist: 'ul'
-            "artist": insert_space(album.find_all(["ul"])[0].text),
-            # Album: 'h2'
-            "title": album.find_all(["h2"])[0].text,
-            # Genre: 'li: genre-list__item'
-            "genre": ", ".join([
-                genre.text
-                for genre in album.find_all("li", {"class": "genre-list__item"})
-            ]),
-        }
-        all_albums.append(entry)
-    return pd.DataFrame(all_albums)
+    playlist_adder.add_albums_from_csv("best-new-albums.csv")
 
 
 if __name__ == "__main__":
